@@ -1,30 +1,76 @@
-import { useState } from 'react'
+import { useEffect, useReducer } from 'react'
 import './App.css'
-import AddTask from './components/AddTask/AddTask'
-import TaskList from './components/TaskList/TaskList'
 import Header from './components/Header/Header'
 import Footer from './components/Footer/Footer'
 import MainContent from './components/MainContent/MainContent'
+import AddTask from './pages/AddTask/AddTask'
+import TaskList from './pages/TaskList/TaskList'
+import taskReducer from './reducers/taskReducer'
+import api from './api'
 
-interface Task {
-  id: number
-  name: string
-}
+const initialState = { tasks: [] }
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [state, dispatch] = useReducer(taskReducer, initialState)
+
+  useEffect(() => {
+    api
+      .get('/tasks')
+      .then((response) => {
+        dispatch({ type: 'SET_TASKS', payload: response.data })
+      })
+      .catch((error) => {
+        console.error('Error fetching tasks: ', error)
+      })
+  }, [])
 
   const addTask = (taskName: string) => {
-    setTasks([...tasks, { id: tasks.length + 1, name: taskName }])
+    api
+      .post('/tasks', { name: taskName, completed: false })
+      .then((response) => {
+        dispatch({ type: 'ADD_TASK', payload: response.data })
+      })
+      .catch((error) => {
+        console.error('Error adding task: ', error)
+      })
+  }
+
+  const removeTask = (taskId: number) => {
+    api
+      .delete(`/tasks/${taskId}`)
+      .then(() => {
+        dispatch({ type: 'REMOVE_TASK', payload: taskId })
+      })
+      .catch((error) => {
+        console.error('Error removing task: ', error)
+      })
+  }
+
+  const toggleTask = (taskId: number) => {
+    const task = state.tasks.find((task) => task.id === taskId)
+    if (task) {
+      api
+        .put(`/tasks/${taskId}`, { ...task, completed: !task.completed })
+        .then((response) => {
+          dispatch({ type: 'TOGGLE_TASK', payload: taskId })
+        })
+        .catch((error) => {
+          console.error('Error toggling task: ', error)
+        })
+    }
   }
 
   return (
     <div className='app-container'>
       <Header />
       <MainContent>
-        <h1>Lista de Tarefas</h1>
+        <h1>Pendências</h1>
         <AddTask onAddTask={addTask} />
-        <TaskList tasks={tasks} />
+        <TaskList
+          tasks={state.tasks}
+          onRemoveTask={removeTask}
+          onToggleTask={toggleTask}
+        />
       </MainContent>
       <Footer />
     </div>
