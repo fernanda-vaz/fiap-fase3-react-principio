@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
 import styled from 'styled-components'
+import { Task } from '../../types'
 
 interface TaskListProps {
-  tasks: { id: number; name: string; completed: boolean }[]
+  tasks: Task[]
   onRemoveTask: (taskId: number) => void
   onToggleTask: (taskId: number) => void
 }
@@ -65,10 +65,6 @@ const TaskList: React.FC<TaskListProps> = ({
   onRemoveTask,
   onToggleTask,
 }) => {
-  useEffect(() => {
-    console.log('A lista de tarefas foi atualizada', tasks)
-  }, [tasks])
-
   return (
     <List>
       {tasks.map((task) => (

@@ -7,8 +7,12 @@ import AddTask from './pages/AddTask/AddTask'
 import TaskList from './pages/TaskList/TaskList'
 import taskReducer from './reducers/taskReducer'
 import api from './api'
+import { Task } from './types'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import CompletedTasks from './pages/CompletedTasks/CompletedTasks'
+import PendingTasks from './pages/PendingTasks/PendingTasks'
 
-const initialState = { tasks: [] }
+const initialState = { tasks: [] as Task[] }
 
 function App() {
   const [state, dispatch] = useReducer(taskReducer, initialState)
@@ -42,17 +46,24 @@ function App() {
         dispatch({ type: 'REMOVE_TASK', payload: taskId })
       })
       .catch((error) => {
-        console.error('Error removing task: ', error)
+        console.error('Error removing task:', error)
       })
   }
 
   const toggleTask = (taskId: number) => {
-    const task = state.tasks.find((task) => task.id === taskId)
+    const task = state.tasks.find((task: Task) => task.id === taskId)
+
     if (task) {
+      const updatedTask: Task = {
+        ...task,
+        completed: !task.completed,
+        completedAt: !task.completed ? new Date() : null,
+      }
+
       api
-        .put(`/tasks/${taskId}`, { ...task, completed: !task.completed })
-        .then((response) => {
-          dispatch({ type: 'TOGGLE_TASK', payload: taskId })
+        .put(`/tasks/${taskId}`, updatedTask)
+        .then(() => {
+          dispatch({ type: 'TOGGLE_TASK', payload: updatedTask })
         })
         .catch((error) => {
           console.error('Error toggling task: ', error)
@@ -61,19 +72,38 @@ function App() {
   }
 
   return (
-    <div className='app-container'>
-      <Header />
-      <MainContent>
-        <h1>Pendências</h1>
-        <AddTask onAddTask={addTask} />
-        <TaskList
-          tasks={state.tasks}
-          onRemoveTask={removeTask}
-          onToggleTask={toggleTask}
-        />
-      </MainContent>
-      <Footer />
-    </div>
+    <Router>
+      <div className='app-container'>
+        <Header />
+        <MainContent>
+          <Routes>
+            <Route
+              path='/'
+              element={
+                <>
+                  <h1>Lista de Tarefas</h1>
+                  <AddTask onAddTask={addTask} />
+                  <TaskList
+                    tasks={state.tasks}
+                    onRemoveTask={removeTask}
+                    onToggleTask={toggleTask}
+                  />
+                </>
+              }
+            />
+            <Route
+              path='/completed'
+              element={<CompletedTasks tasks={state.tasks} />}
+            />
+            <Route
+              path='/pending'
+              element={<PendingTasks tasks={state.tasks} />}
+            />
+          </Routes>
+        </MainContent>
+        <Footer />
+      </div>
+    </Router>
   )
 }
 
